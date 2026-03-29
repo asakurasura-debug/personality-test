@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>16タイプ診断</title>
+<style>
+body { font-family: Arial; background:#111; color:#eee; margin:0; padding:20px; }
+.container { max-width:700px; margin:auto; }
+.card { background:#1a1a1a; padding:20px; border-radius:12px; margin-bottom:20px; }
+.question { margin-bottom:20px; }
+label { display:block; margin:6px 0; padding:10px; background:#222; border-radius:8px; cursor:pointer; }
+button { padding:12px 20px; margin-top:10px; background:#444; color:#fff; border:none; border-radius:8px; cursor:pointer; }
+.hidden { display:none; }
+.resultBox { text-align:center; }
+.type { font-size:32px; font-weight:bold; margin-top:20px; }
+.desc { margin-top:20px; font-size:18px; }
+canvas { margin-top:20px; background:#000; border-radius:10px; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>16タイプ診断</h1>
+<form id="quiz">
+<div id="page1" class="card"><h2>1〜10問</h2><div id="p1"></div><button type="button" onclick="next(1)">次へ</button><div id="err1"></div></div>
+<div id="page2" class="card hidden"><h2>11〜20問</h2><div id="p2"></div><button type="button" onclick="next(2)">次へ</button><div id="err2"></div></div>
+<div id="page3" class="card hidden"><h2>21〜30問</h2><div id="p3"></div><button type="button" onclick="calculate()">結果を見る</button><div id="err3"></div></div>
+</form>
+
+<div id="resultPage" class="hidden resultBox">
+<div class="type" id="type"></div>
+<div class="desc" id="desc"></div>
+<canvas id="canvas" width="300" height="300"></canvas>
+<br>
+<button onclick="share()">シェアする</button>
+<button onclick="downloadImage()">画像保存</button>
+<button onclick="location.reload()">もう一度</button>
+<div id="stats"></div>
+</div>
+</div>
+
+<script>
+const questions = Array.from({length:30},(_,i)=>`質問${i+1}`);
+function render(){
+ questions.forEach((q,i)=>{
+   const html=`Q${i+1} ${q}<label><input type=radio name=q${i+1} value=A>はい</label><label><input type=radio name=q${i+1} value=B>いいえ</label>`;
+   if(i<10) p1.innerHTML+=`<div class=question>${html}</div>`;
+   else if(i<20) p2.innerHTML+=`<div class=question>${html}</div>`;
+   else p3.innerHTML+=`<div class=question>${html}</div>`;
+ });
+}
+render();
+
+function check(p){
+ for(let i=(p-1)*10+1;i<=p*10;i++){
+   if(!document.querySelector(`input[name=q${i}]:checked`)) return false;
+ }
+ return true;
+}
+
+function next(p){
+ if(!check(p)) return alert("全部答えてね");
+ document.getElementById('page'+p).classList.add('hidden');
+ document.getElementById('page'+(p+1)).classList.remove('hidden');
+}
+
+function calculate(){
+ if(!check(3)) return alert("全部答えてね");
+
+ let type="AUBX"; //簡略（本来ロジック）
+
+ const descs={"AUBX":"自由で直感的な冒険家タイプ"};
+
+ document.getElementById('quiz').classList.add('hidden');
+ document.getElementById('resultPage').classList.remove('hidden');
+ document.getElementById('type').innerText="あなたのタイプ: "+type;
+ document.getElementById('desc').innerText=descs[type];
+
+ drawImage(type);
+ saveStats(type);
+ showStats();
+}
+
+function drawImage(type){
+ const c=document.getElementById('canvas');
+ const ctx=c.getContext('2d');
+ ctx.fillStyle="#000";ctx.fillRect(0,0,300,300);
+ ctx.fillStyle="#fff";
+ ctx.font="20px Arial";
+ ctx.fillText("あなたのタイプ",60,120);
+ ctx.font="40px Arial";
+ ctx.fillText(type,110,180);
+}
+
+function downloadImage(){
+ const link=document.createElement('a');
+ link.download="result.png";
+ link.href=document.getElementById('canvas').toDataURL();
+ link.click();
+}
+
+function share(){
+ const text="診断結果やってみた！";
+ const url=location.href;
+ window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`);
+}
+
+function saveStats(type){
+ let data=JSON.parse(localStorage.getItem('stats')||"{}");
+ data[type]=(data[type]||0)+1;
+ localStorage.setItem('stats',JSON.stringify(data));
+}
+
+function showStats(){
+ let data=JSON.parse(localStorage.getItem('stats')||"{}");
+ let html="<h3>タイプ分布</h3>";
+ for(let k in data){ html+=`${k}: ${data[k]}回<br>`; }
+ document.getElementById('stats').innerHTML=html;
+}
+</script>
+</body>
+</html>
